@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101827"><title>2UP Calculator</title>
+<style>
+:root{color-scheme:dark;--bg:#101827;--panel:#1b2638;--text:#f5f7fb;--muted:#aab6c8;--accent:#8bd5a5;--line:#344257}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);padding:calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom))}main{max-width:520px;margin:0 auto}h1{font-size:27px;margin:4px 0 6px}.sub{color:var(--muted);margin:0 0 22px;line-height:1.4;font-size:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px}label{display:block;font-size:14px;color:var(--muted);margin:0 0 8px}input{width:100%;font:inherit;font-size:20px;color:var(--text);background:#0e1725;border:1px solid #46546b;border-radius:12px;padding:14px 12px;outline:none}input:focus{border-color:var(--accent)}.field{margin-bottom:17px}.field:last-child{margin-bottom:0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.result-label{color:var(--muted);font-size:13px;margin-bottom:7px}.big{font-size:36px;line-height:1.15;font-weight:750;letter-spacing:-1px;overflow-wrap:anywhere}.small{color:var(--muted);font-size:13px;line-height:1.4;margin-top:7px}.status{border-radius:12px;padding:13px 14px;font-weight:700;margin-top:13px}.good{background:#163b2b;color:#a5f0bf}.bad{background:#482326;color:#ffc1c1}.neutral{background:#253349;color:#d5deeb}.line{height:1px;background:var(--line);margin:16px 0}.stat{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:11px 0}.stat span{color:var(--muted);font-size:13px}.stat strong{font-size:16px}button{width:100%;border:1px solid var(--line);background:#253349;color:var(--text);padding:12px;border-radius:12px;font:inherit;font-weight:650;margin-top:4px}.foot{color:var(--muted);font-size:13px;line-height:1.5;margin-top:14px}
+</style></head><body><main>
+<h1>2UP Calculator</h1><p class="sub">Check your maximum lay odds against your qualifying-loss limit.</p>
+<section class="card">
+<div class="field"><label for="back">Back odds (decimal)</label><input id="back" type="number" inputmode="decimal" min="1.01" step="0.01" value="4.00"></div>
+<div class="grid"><div class="field"><label for="limit">Loss limit (%)</label><input id="limit" type="number" inputmode="decimal" min="0.01" max="99" step="0.1" value="1.5"></div>
+<div class="field"><label for="stake">Back stake (£)</label><input id="stake" type="number" inputmode="decimal" min="0.01" step="1" value="100"></div></div>
+<div class="result-label">Maximum lay odds</div><div class="big" id="maxLay">4.251</div><div class="small">Use available lay odds at or below this value to meet your selected limit.</div>
+</section>
+<section class="card"><div class="field"><label for="lay">Available lay odds</label><input id="lay" type="number" inputmode="decimal" min="1.01" step="0.01" value="4.20"></div>
+<div class="grid"><div><div class="result-label">Suggested lay stake</div><div class="big" style="font-size:27px" id="layStake">£95.24</div></div>
+<div><div class="result-label">Qualifying loss</div><div class="big" style="font-size:27px" id="loss">£4.76</div></div></div>
+<div class="line"></div><div class="stat"><span>Loss as % of combined 2UP winnings</span><strong id="actualPct">1.19%</strong></div>
+<div class="stat"><span>Combined 2UP winnings</span><strong id="combined">£395.24</strong></div><div id="status" class="status good">Qualifies</div></section>
+<button id="reset" type="button">Reset to defaults</button>
+<p class="foot">Estimates assume standard decimal odds, lay stake = back stake × back odds ÷ lay odds, and no exchange commission. Check the bookmaker's 2UP terms and settlement rules. This tool is for guidance only and not financial advice.</p>
+</main><script>
+const $=id=>document.getElementById(id), money=n=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(n);
+function calculate(){
+  const b=Number($('back').value),pct=Number($('limit').value),s=Number($('stake').value),l=Number($('lay').value),p=pct/100;
+  const valid=$('back').value!==''&&$('limit').value!==''&&$('stake').value!==''&&Number.isFinite(b)&&b>1&&Number.isFinite(p)&&p>0&&p<1/(b-1)&&Number.isFinite(s)&&s>0;
+  if(!valid){$('maxLay').textContent='—';['layStake','loss','actualPct','combined'].forEach(id=>$(id).textContent='—');$('status').className='status neutral';$('status').textContent='Enter valid numbers';return;}
+  const max=b*(1+p)/(1-p*(b-1));$('maxLay').textContent=max.toFixed(3);
+  if($('lay').value===''||!Number.isFinite(l)||l<=1){['layStake','loss','actualPct','combined'].forEach(id=>$(id).textContent='—');$('status').className='status neutral';$('status').textContent='Enter valid lay odds';return;}
+  const ls=s*b/l,loss=Math.abs(s-ls),combined=s*(b-1)+ls,actual=combined>0?loss/combined*100:0;
+  $('layStake').textContent=money(ls);$('loss').textContent=money(loss);$('actualPct').textContent=actual.toFixed(2)+'%';$('combined').textContent=money(combined);
+  const ok=l<=max&&actual<=pct+1e-10;$('status').className='status '+(ok?'good':'bad');$('status').textContent=ok?'QUALIFIES — within your limit':'DOES NOT QUALIFY — over your limit';
+}
+['back','limit','stake','lay'].forEach(id=>$(id).addEventListener('input',calculate));
+$('reset').addEventListener('click',()=>{$('back').value='4.00';$('limit').value='1.5';$('stake').value='100';$('lay').value='4.20';calculate()});calculate();
+</script></body></html>
